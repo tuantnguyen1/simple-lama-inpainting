@@ -82,20 +82,24 @@ def prepare_img_and_mask(image, mask, device, pad_out_to_modulo=8, scale_factor=
 
 # Source: https://github.com/Sanster/lama-cleaner/blob/6cfc7c30f1d6428c02e21d153048381923498cac/lama_cleaner/helper.py # noqa
 def get_cache_path_by_url(url):
-    parts = urlparse(url)
-    hub_dir = get_dir()
-    model_dir = os.path.join(hub_dir, "checkpoints")
+    # Save to /tmp instead of the default read-only directory
+    model_dir = "/tmp/checkpoints"
     if not os.path.isdir(model_dir):
-        os.makedirs(os.path.join(model_dir, "hub", "checkpoints"))
-    filename = os.path.basename(parts.path)
-    cached_file = os.path.join(model_dir, filename)
-    return cached_file
+        os.makedirs(model_dir, exist_ok=True)
 
+    # Extract the file name from the URL and create a path in /tmp
+    filename = os.path.basename(urlparse(url).path)
+    cached_file = os.path.join(model_dir, filename)
+
+    return cached_file
 
 def download_model(url):
     cached_file = get_cache_path_by_url(url)
+    
+    # If the model file doesn't already exist in /tmp, download it
     if not os.path.exists(cached_file):
-        sys.stderr.write('Downloading: "{}" to {}\n'.format(url, cached_file))
+        sys.stderr.write(f'Downloading: "{url}" to {cached_file}\n')
         hash_prefix = None
         download_url_to_file(url, cached_file, hash_prefix, progress=True)
+
     return cached_file
